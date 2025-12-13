@@ -9,6 +9,7 @@ export default function ContactPage() {
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           Get Started
         </h1>
+
         <p className="mt-3 text-white/70">
           Tell us a bit about your business. We’ll reply with recommended next
           steps and a launch plan.
@@ -21,3 +22,4 @@ export default function ContactPage() {
     </main>
   );
 }
+
