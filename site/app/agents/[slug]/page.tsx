@@ -2,8 +2,32 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AGENTS } from "../agentsData";
 import { getAgentSlug } from "../../lib/agentSlug";
+import type { Metadata } from "next";
 
 type Params = { slug: string };
+export function generateMetadata({
+  params,
+}: {
+  params: Params;
+}): Metadata {
+  const agent = AGENTS.find((a) => getAgentSlug(a) === params.slug);
+
+  if (!agent) {
+    return { title: "Agent Not Found | Aspect Marketing Solutions" };
+  }
+
+  const name = (agent as { name?: string }).name ?? "Agent";
+  const tagline = (agent as { tagline?: string }).tagline;
+
+  const title = tagline
+    ? `${name} — ${tagline} | Aspect Marketing Solutions`
+    : `${name} | Aspect Marketing Solutions`;
+
+  const description =
+    tagline ?? `Learn more about ${name} at Aspect Marketing Solutions.`;
+
+  return { title, description };
+}
 
 
 export function generateStaticParams() {
