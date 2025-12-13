@@ -1,123 +1,86 @@
+// site/app/platform/page.tsx
+
 import Link from "next/link";
+
+const sections = [
+  {
+    title: "Agent orchestration",
+    desc: "Coordinate content, lead capture, nurture, and CRO with clear priorities and handoffs.",
+    bullets: ["Defined workflows", "Shared context", "Continuous optimization"],
+  },
+  {
+    title: "Tracking + attribution",
+    desc: "Know what’s working and why. Track conversion events and map channel impact.",
+    bullets: ["Event plan", "Attribution checks", "KPI dashboards"],
+  },
+  {
+    title: "Conversion system",
+    desc: "Ship improvements in a loop: insights → test → rollout → measure.",
+    bullets: ["Experiment backlog", "Prioritized fixes", "Landing page iteration"],
+  },
+];
 
 export default function PlatformPage() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-20">
-      {/* Hero */}
-      <section className="mb-20 text-center">
-        <span className="inline-block rounded-full border border-white/15 px-4 py-1 text-xs text-white/70">
-          AI Marketing Operations Platform
-        </span>
+    <main className="min-h-screen bg-black text-white">
+      <section className="mx-auto max-w-6xl px-6 pt-16 pb-10 md:pt-20">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
+          <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+          Platform overview
+        </div>
 
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-5xl">
-          One platform. Every growth system.
+        <h1 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
+          A marketing operating system—built for outcomes.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-3xl text-white/70">
-          Aspect Marketing Solutions is an always-on marketing operations system.
-          Agents work together to attract demand, capture leads, nurture prospects,
-          optimize conversions, and report what’s working — automatically.
+        <p className="mt-3 max-w-3xl text-white/70">
+          The platform is the coordination layer: it keeps agents aligned,
+          ensures the right work happens next, and delivers compounding wins.
         </p>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
-          <Link
-            href="/agents"
-            className="rounded-md bg-white px-6 py-3 text-sm font-medium text-black hover:bg-white/90"
-          >
-            Meet the Agents
-          </Link>
-          <Link
-            href="/pricing"
-            className="rounded-md border border-white/20 px-6 py-3 text-sm font-medium text-white hover:bg-white/5"
-          >
-            View Pricing
-          </Link>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="mb-20">
-        <h2 className="mb-10 text-2xl font-semibold">
-          How the platform works
-        </h2>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {[
-            {
-              title: "Demand Creation",
-              desc: "Content and SEO agents publish consistently to build authority and bring qualified traffic."
-            },
-            {
-              title: "Lead Capture",
-              desc: "Lead Magnet and Conversion agents turn visitors into leads using optimized offers and pages."
-            },
-            {
-              title: "Nurture & Follow-Up",
-              desc: "Nurture agents automatically follow up across email and SMS so leads never go cold."
-            },
-            {
-              title: "Optimization & Insights",
-              desc: "Conversion and Analytics agents continuously test, improve, and report performance."
-            }
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-xl border border-white/15 bg-white/5 p-6"
-            >
-              <h3 className="text-lg font-medium">{item.title}</h3>
-              <p className="mt-3 text-sm text-white/70">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Outcomes */}
-      <section className="mb-20">
-        <h2 className="mb-10 text-2xl font-semibold">
-          What you get
-        </h2>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {[
-            "Consistent inbound pipeline",
-            "Higher conversion rates",
-            "Lower cost per acquisition",
-            "Faster time-to-close",
-            "Clear weekly performance reporting",
-            "A system that compounds over time"
-          ].map((outcome) => (
-            <div
-              key={outcome}
-              className="rounded-xl border border-white/15 bg-white/5 p-5 text-sm"
-            >
-              {outcome}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="rounded-2xl border border-white/15 bg-white/5 p-10 text-center">
-        <h2 className="text-2xl font-semibold">
-          Ready to see the system in action?
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-white/70">
-          Book a free marketing audit or explore the agents that power the platform.
-        </p>
-
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/contact"
-            className="rounded-md bg-white px-6 py-3 text-sm font-medium text-black hover:bg-white/90"
+            className="rounded-md bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90"
           >
-            Book a Free Audit
+            Get Started
           </Link>
           <Link
             href="/agents"
-            className="rounded-md border border-white/20 px-6 py-3 text-sm font-medium text-white hover:bg-white/5"
+            className="rounded-md border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10"
           >
             Explore Agents
           </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-14">
+        <div className="grid gap-5 md:grid-cols-3">
+          {sections.map((s) => (
+            <div
+              key={s.title}
+              className="rounded-xl border border-white/15 bg-white/5 p-5"
+            >
+              <p className="text-lg font-semibold">{s.title}</p>
+              <p className="mt-2 text-sm text-white/70">{s.desc}</p>
+              <ul className="mt-4 space-y-1 text-sm text-white/70">
+                {s.bullets.map((b) => (
+                  <li key={b}>• {b}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-white/15 bg-white/5 p-7">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Implementation approach
+          </h2>
+          <ol className="mt-3 space-y-2 text-sm text-white/70">
+            <li>1) Baseline audit: funnel, tracking, offers, and content.</li>
+            <li>2) Deploy the first agent: quickest impact for your business.</li>
+            <li>3) Build the weekly loop: report → prioritize → ship → measure.</li>
+          </ol>
         </div>
       </section>
     </main>
