@@ -1,0 +1,46 @@
+name: Build Saad Collaboration Video
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-saad-collab-video.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install pillow numpy edge-tts
+
+      - name: Render collaboration video
+        run: python tools/build_saad_collab_video.py
+
+      - name: Verify media
+        run: |
+          test -s AMS_M_Saad_Rauf_Collaboration_Concept.mp4
+          test -s AMS_M_Saad_Rauf_Collaboration_Script.txt
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json AMS_M_Saad_Rauf_Collaboration_Concept.mp4
+
+      - name: Upload collaboration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ams-saad-collaboration-video
+          retention-days: 14
+          compression-level: 0
+          path: |
+            AMS_M_Saad_Rauf_Collaboration_Concept.mp4
+            AMS_M_Saad_Rauf_Collaboration_Script.txt
