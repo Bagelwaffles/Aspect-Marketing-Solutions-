@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-import asyncio
+import asyncio, importlib.util
 from pathlib import Path
-import tools.build_saad_collaboration_v2 as m
+
+spec=importlib.util.spec_from_file_location('saad_v2', Path('tools/build_saad_collaboration_v2.py'))
+m=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
 
 m.scenes=[
 {'title':'SAAD — I SEE A REAL FIT','kicker':'LINKEDIN GROWTH × AMS','bullets':['Founders, coaches & CEOs','Authority + personal brand','Opportunity-focused growth'],'narration':"Hi Saad. I looked more closely at your profile, and your focus is clear: helping founders, coaches, and CEOs build authority, grow their personal brands, and turn LinkedIn visibility into opportunity. That is where I think Aspect Marketing Solutions may genuinely complement what you do."},
