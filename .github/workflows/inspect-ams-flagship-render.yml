@@ -1,0 +1,91 @@
+name: Inspect AMS Flagship Render
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-ams-flagship-render.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    env:
+      GH_TOKEN: ${{ github.token }}
+      WORKFLOW_FILE: build-ams-flagship-video.yml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find render run and record initial state
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 5
+          run_json="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=10")"
+          run_id="$(printf '%s' "$run_json" | jq -r '.workflow_runs | sort_by(.created_at) | reverse | .[0].id // empty')"
+          if [ -z "$run_id" ]; then
+            echo 'No flagship render run found.' >&2
+            exit 1
+          fi
+          status="$(printf '%s' "$run_json" | jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id==$id) | .status')"
+          conclusion="$(printf '%s' "$run_json" | jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id==$id) | (.conclusion // "pending")')"
+          url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+          cat > FLAGSHIP_RENDER_PROGRESS.md <<EOF
+          # AMS Flagship Render Progress
+
+          Run ID: ${run_id}
+          Status: ${status}
+          Conclusion: ${conclusion}
+          Run: ${url}
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FLAGSHIP_RENDER_PROGRESS.md
+          git commit -m 'docs: record flagship render run id' || true
+          git push
+          echo "RUN_ID=$run_id" >> "$GITHUB_ENV"
+
+      - name: Wait for render completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 200); do
+            state="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.status')"
+            if [ "$state" = 'completed' ]; then
+              conclusion="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.conclusion')"
+              echo "FINAL_CONCLUSION=$conclusion" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo 'Timed out waiting for render completion.' >&2
+          exit 1
+
+      - name: Record final render state
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          git pull --rebase
+          conclusion="${FINAL_CONCLUSION:-unknown}"
+          cat > FLAGSHIP_RENDER_PROGRESS.md <<EOF
+          # AMS Flagship Render Progress
+
+          Run ID: ${RUN_ID:-unknown}
+          Status: completed
+          Conclusion: ${conclusion}
+          Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID:-unknown}
+          EOF
+          if [ "$conclusion" != 'success' ] && [ -n "${RUN_ID:-}" ]; then
+            gh run view "$RUN_ID" --log-failed 2>&1 | tail -250 > FLAGSHIP_RENDER_FAILURE.log || true
+            git add FLAGSHIP_RENDER_FAILURE.log
+          fi
+          git add FLAGSHIP_RENDER_PROGRESS.md
+          git commit -m 'docs: record flagship render completion' || true
+          git push
