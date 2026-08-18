@@ -1,0 +1,64 @@
+name: Publish AMS Flagship Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-ams-flagship-release.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ARTIFACT_NAME: ams-flagship-33-agent-film
+      RELEASE_TAG: ams-flagship-2026-08-18
+    steps:
+      - name: Wait for flagship render artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_id=''
+          for attempt in $(seq 1 100); do
+            artifact_id="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ARTIFACT_NAME}&per_page=10" --jq '.artifacts | map(select(.expired == false)) | sort_by(.created_at) | reverse | .[0].id // empty')"
+            if [ -n "$artifact_id" ]; then
+              echo "Found artifact id: $artifact_id"
+              echo "ARTIFACT_ID=$artifact_id" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            echo "Artifact not ready yet (attempt ${attempt}/100). Waiting 60 seconds..."
+            sleep 60
+          done
+          echo 'Timed out waiting for flagship render artifact.' >&2
+          exit 1
+
+      - name: Download and verify artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release_files
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > flagship.zip
+          unzip -o flagship.zip -d release_files
+          test -s release_files/AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+          test -s release_files/AMS_Flagship_Captions.srt
+          test -s release_files/AMS_Flagship_Script.txt
+          test -s release_files/AMS_Flagship_Manifest.json
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json release_files/AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+
+      - name: Create or update release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release_files/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release_files/* \
+              --title 'AMS Flagship — The Cloud AI Command Center' \
+              --notes 'Flagship Aspect Marketing Solutions system film. Covers the cloud architecture, all 33 official agents with honest status labels, recovered and R&D concepts, the Quick Marketing Audit, Android, n8n, Stripe, publishing, operations, and the roadmap. Includes MP4, captions, narration script, and timing manifest.'
+          fi
