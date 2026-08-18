@@ -1,14 +1,6 @@
 name: Build AMS Collaboration System Film
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/build-ams-collaboration-system-film.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'render-trigger/**'
   workflow_dispatch:
 
 permissions:
@@ -62,7 +54,6 @@ jobs:
           compression-level: 0
 
       - name: Publish stable release
-        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -77,7 +68,6 @@ jobs:
           fi
 
       - name: Persist render proof
-        if: github.event_name == 'push'
         run: |
           mkdir -p render-status
           cp dist/collaboration/ams-collaboration-system-film-manifest.json render-status/ams-collaboration-system-film-manifest.json
