@@ -1,0 +1,99 @@
+name: Build AMS Flagship Video V3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ams-flagship-video-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AMS_FLAGSHIP_VOICE: en-US-JennyNeural
+      AMS_FLAGSHIP_RATE: '-4%'
+      RELEASE_TAG: ams-flagship-2026-08-18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify and restore flagship builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat video_builder_chunks/chunk_00.b64 \
+              video_builder_chunks/chunk_01.b64 \
+              video_builder_chunks/chunk_02.b64 \
+              video_builder_chunks/chunk_03.b64 \
+              video_builder_chunks/chunk_04.b64 > /tmp/ams_builder_bundle.b64
+          test "$(wc -c < /tmp/ams_builder_bundle.b64)" -eq 20000
+          echo '6d0fce267fb688aaad2d135df41de24a88b630b60449429d4e0e1543c8fd0db1  /tmp/ams_builder_bundle.b64' | sha256sum -c -
+          base64 -d /tmp/ams_builder_bundle.b64 > /tmp/ams_builder_bundle.tgz
+          echo '8e2c4460127904c55cff523cd5905919732c0275884e36599157fd2122ca533a  /tmp/ams_builder_bundle.tgz' | sha256sum -c -
+          gzip -t /tmp/ams_builder_bundle.tgz
+          tar -tzf /tmp/ams_builder_bundle.tgz
+          tar -xzf /tmp/ams_builder_bundle.tgz -C .
+          python -m py_compile tools/build_ams_flagship_video.py
+          test -s video/ams_flagship_scenes.json
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install pillow numpy edge-tts gTTS
+
+      - name: Render complete AMS flagship film
+        run: python tools/build_ams_flagship_video.py
+
+      - name: Verify finished film
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+          test -s AMS_Flagship_Captions.srt
+          test -s AMS_Flagship_Script.txt
+          test -s AMS_Flagship_Manifest.json
+          ffprobe -v error \
+            -show_entries format=duration,size \
+            -show_entries stream=codec_name,width,height,r_frame_rate \
+            -of json \
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+
+      - name: Upload Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ams-flagship-33-agent-film
+          compression-level: 0
+          retention-days: 14
+          path: |
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+            AMS_Flagship_Captions.srt
+            AMS_Flagship_Script.txt
+            AMS_Flagship_Manifest.json
+
+      - name: Publish release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=(
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+            AMS_Flagship_Captions.srt
+            AMS_Flagship_Script.txt
+            AMS_Flagship_Manifest.json
+          )
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --title 'AMS Flagship — The Cloud AI Command Center' \
+              --notes 'Complete Aspect Marketing Solutions flagship film. Covers the cloud architecture, all 33 official agents with honest status labels, recovered and R&D concepts, the Quick Marketing Audit, Android, n8n, Stripe, publishing, operations, security principles, and roadmap. Includes MP4, captions, full narration script, and scene manifest.'
+          fi
