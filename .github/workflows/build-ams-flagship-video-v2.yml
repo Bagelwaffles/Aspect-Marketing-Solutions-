@@ -1,0 +1,118 @@
+name: Build AMS Flagship Video V2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ams-flagship-video-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AMS_FLAGSHIP_VOICE: en-US-JennyNeural
+      AMS_FLAGSHIP_RATE: '-4%'
+      RELEASE_TAG: ams-flagship-2026-08-18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install render dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install pillow numpy edge-tts gTTS
+
+      - name: Restore flagship builder from stored bundle
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, re
+          source = Path('.github/workflows/build-ams-flagship-video.yml').read_text(encoding='utf-8')
+          match = re.search(r"<<'B64'\n([A-Za-z0-9+/=\r\n]+?)\nB64", source)
+          if not match:
+              raise SystemExit('Embedded flagship builder bundle not found')
+          payload = ''.join(match.group(1).split())
+          Path('/tmp/ams_builder_bundle.tgz').write_bytes(base64.b64decode(payload))
+          PY
+          tar -xzf /tmp/ams_builder_bundle.tgz -C .
+          python -m py_compile tools/build_ams_flagship_video.py
+          test -s video/ams_flagship_scenes.json
+
+      - name: Render flagship film
+        run: python tools/build_ams_flagship_video.py
+
+      - name: Verify finished film
+        run: |
+          test -s AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+          test -s AMS_Flagship_Captions.srt
+          test -s AMS_Flagship_Script.txt
+          test -s AMS_Flagship_Manifest.json
+          ffprobe -v error \
+            -show_entries format=duration,size \
+            -show_entries stream=codec_name,width,height \
+            -of json \
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+
+      - name: Upload Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ams-flagship-33-agent-film
+          compression-level: 0
+          retention-days: 14
+          path: |
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+            AMS_Flagship_Captions.srt
+            AMS_Flagship_Script.txt
+            AMS_Flagship_Manifest.json
+
+      - name: Publish release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=(
+            AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+            AMS_Flagship_Captions.srt
+            AMS_Flagship_Script.txt
+            AMS_Flagship_Manifest.json
+          )
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --title 'AMS Flagship — The Cloud AI Command Center' \
+              --notes 'The complete Aspect Marketing Solutions flagship system film. Covers AMS architecture, all 33 official agents with honest status labels, recovered and experimental concepts, Quick Marketing Audit, Android, n8n, Stripe, publishing, operations, security principles, and roadmap. Includes MP4, captions, full narration script, and scene manifest.'
+          fi
+
+      - name: Record finished download URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase || true
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          cat > FLAGSHIP_RENDER_STATUS.md <<EOF
+          # AMS Flagship Render — COMPLETE
+
+          Release tag: ${RELEASE_TAG}
+          Renderer: Build AMS Flagship Video V2
+
+          MP4: ${base}/AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+          Captions: ${base}/AMS_Flagship_Captions.srt
+          Script: ${base}/AMS_Flagship_Script.txt
+          Manifest: ${base}/AMS_Flagship_Manifest.json
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FLAGSHIP_RENDER_STATUS.md
+          git commit -m 'docs: record completed AMS flagship V2 render' || true
+          git push
