@@ -1,0 +1,3 @@
+AMS Collaboration System Film v1
+Requested: 2026-08-18
+Purpose: render the verified collaboration film through the observable pull-request workflow.
