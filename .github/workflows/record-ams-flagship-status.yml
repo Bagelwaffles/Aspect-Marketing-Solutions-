@@ -1,0 +1,58 @@
+name: Record AMS Flagship Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/record-ams-flagship-status.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ams-flagship-2026-08-18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for release
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 105); do
+            if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+              echo "Release is ready."
+              exit 0
+            fi
+            echo "Release not ready (attempt ${attempt}/105); waiting 60 seconds..."
+            sleep 60
+          done
+          echo 'Timed out waiting for flagship release.' >&2
+          exit 1
+
+      - name: Record verified download URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          cat > FLAGSHIP_RENDER_STATUS.md <<EOF
+          # AMS Flagship Render — COMPLETE
+
+          Release tag: ${RELEASE_TAG}
+
+          MP4: ${base}/AMS_Aspect_Marketing_Solutions_Flagship_33_Agents.mp4
+          Captions: ${base}/AMS_Flagship_Captions.srt
+          Script: ${base}/AMS_Flagship_Script.txt
+          Manifest: ${base}/AMS_Flagship_Manifest.json
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FLAGSHIP_RENDER_STATUS.md
+          git commit -m 'docs: record completed AMS flagship render' || true
+          git push
