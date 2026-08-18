@@ -81,3 +81,5 @@ jobs:
           git add render-status/
           git commit -m 'chore: record verified AMS collaboration film [skip ci]' || exit 0
           git push origin HEAD:main
+
+      # Deliberate no-op marker: this second main push occurs after the workflow exists on the default branch.
