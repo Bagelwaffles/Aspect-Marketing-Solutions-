@@ -1,0 +1,42 @@
+name: Build Saad Collaboration V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_saad_collaboration_v2.py'
+      - '.github/workflows/build-saad-collaboration-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install pillow edge-tts
+      - name: Render personalized collaboration video
+        run: python tools/build_saad_collaboration_v2.py
+      - name: Verify media
+        run: |
+          test -s AMS_M_Saad_Rauf_Collaboration_Personalized_V2.mp4
+          test -s AMS_M_Saad_Rauf_Collaboration_Personalized_V2_Script.txt
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json AMS_M_Saad_Rauf_Collaboration_Personalized_V2.mp4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ams-saad-collaboration-personalized-v2
+          retention-days: 14
+          compression-level: 0
+          path: |
+            AMS_M_Saad_Rauf_Collaboration_Personalized_V2.mp4
+            AMS_M_Saad_Rauf_Collaboration_Personalized_V2_Script.txt
